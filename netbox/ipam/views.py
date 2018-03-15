@@ -970,7 +970,7 @@ class WLANCreateView(PermissionRequiredMixin, ObjectEditView):
     default_return_url = 'ipam:wlan_list'
 
 
-class WLANEditView(VLANCreateView):
+class WLANEditView(WLANCreateView):
     permission_required = 'ipam.change_wlan'
 
 

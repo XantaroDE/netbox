@@ -67,7 +67,7 @@
                 <tr>
                     <td>Group</td>
                     <td>
-                        {% if vlan.group %}
+                        {% if wlan.group %}
                             <a href="{{ wlan.group.get_absolute_url }}">{{ wlan.group }}</a>
                         {% else %}
                             <span class="text-muted">None</span>
@@ -76,7 +76,7 @@
                 </tr>
                 <tr>
                     <td>WLAN SSID</td>
-                    <td>{{ wlan.wwid }}</td>
+                    <td>{{ wlan.ssid }}</td>
                 </tr>
                 <tr>
                     <td>Name</td>
