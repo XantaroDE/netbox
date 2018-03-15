@@ -17,7 +17,7 @@ from utilities.views import (
 from virtualization.models import VirtualMachine
 from . import filters, forms, tables
 from .constants import IPADDRESS_ROLE_ANYCAST, PREFIX_STATUS_ACTIVE, PREFIX_STATUS_DEPRECATED, PREFIX_STATUS_RESERVED
-from .models import Aggregate, IPAddress, Prefix, RIR, Role, Service, VLAN, VLANGroup, VRF
+from .models import Aggregate, IPAddress, Prefix, RIR, Role, Service, VLAN, VLANGroup, WLAN, WLANGroup, VRF
 
 
 def add_available_prefixes(parent, prefix_list):
@@ -893,6 +893,117 @@ class VLANBulkDeleteView(PermissionRequiredMixin, BulkDeleteView):
     filter = filters.VLANFilter
     table = tables.VLANTable
     default_return_url = 'ipam:vlan_list'
+
+
+
+
+#
+# WLAN groups
+#
+
+class WLANGroupListView(ObjectListView):
+    queryset = WLANGroup.objects.select_related('site').annotate(wlan_count=Count('wlans'))
+    filter = filters.WLANGroupFilter
+    filter_form = forms.WLANGroupFilterForm
+    table = tables.WLANGroupTable
+    template_name = 'ipam/wlangroup_list.html'
+
+
+class WLANGroupCreateView(PermissionRequiredMixin, ObjectEditView):
+    permission_required = 'ipam.add_wlangroup'
+    model = WLANGroup
+    model_form = forms.WLANGroupForm
+
+    def get_return_url(self, request, obj):
+        return reverse('ipam:wlangroup_list')
+
+
+class WLANGroupEditView(WLANGroupCreateView):
+    permission_required = 'ipam.change_wlangroup'
+
+
+class WLANGroupBulkImportView(PermissionRequiredMixin, BulkImportView):
+    permission_required = 'ipam.add_wlangroup'
+    model_form = forms.WLANGroupCSVForm
+    table = tables.WLANGroupTable
+    default_return_url = 'ipam:wlangroup_list'
+
+
+class WLANGroupBulkDeleteView(PermissionRequiredMixin, BulkDeleteView):
+    permission_required = 'ipam.delete_wlangroup'
+    cls = WLANGroup
+    queryset = WLANGroup.objects.select_related('site').annotate(wlan_count=Count('wlans'))
+    filter = filters.WLANGroupFilter
+    table = tables.WLANGroupTable
+    default_return_url = 'ipam:wlangroup_list'
+
+#
+# WLANs
+#
+
+class WLANListView(ObjectListView):
+    queryset = WLAN.objects.select_related('site', 'group', 'tenant', 'role')
+    filter = filters.WLANFilter
+    filter_form = forms.WLANFilterForm
+    table = tables.WLANTable
+    template_name = 'ipam/wlan_list.html'
+
+
+class WLANView(View):
+
+    def get(self, request, pk):
+
+        wlan = get_object_or_404(WLAN.objects.select_related(
+            'site__region', 'tenant__group', 'role'
+        ), pk=pk)
+
+        return render(request, 'ipam/wlan.html', {
+            'wlan': wlan,
+        })
+
+
+class WLANCreateView(PermissionRequiredMixin, ObjectEditView):
+    permission_required = 'ipam.add_wlan'
+    model = WLAN
+    model_form = forms.WLANForm
+    template_name = 'ipam/wlan_edit.html'
+    default_return_url = 'ipam:wlan_list'
+
+
+class WLANEditView(VLANCreateView):
+    permission_required = 'ipam.change_wlan'
+
+
+class WLANDeleteView(PermissionRequiredMixin, ObjectDeleteView):
+    permission_required = 'ipam.delete_wlan'
+    model = WLAN
+    default_return_url = 'ipam:wlan_list'
+
+
+class WLANBulkImportView(PermissionRequiredMixin, BulkImportView):
+    permission_required = 'ipam.add_wlan'
+    model_form = forms.WLANCSVForm
+    table = tables.WLANTable
+    default_return_url = 'ipam:wlan_list'
+
+
+class WLANBulkEditView(PermissionRequiredMixin, BulkEditView):
+    permission_required = 'ipam.change_wlan'
+    cls = WLAN
+    queryset = WLAN.objects.select_related('site', 'group', 'tenant', 'role')
+    filter = filters.WLANFilter
+    table = tables.WLANTable
+    form = forms.WLANBulkEditForm
+    default_return_url = 'ipam:wlan_list'
+
+
+class WLANBulkDeleteView(PermissionRequiredMixin, BulkDeleteView):
+    permission_required = 'ipam.delete_wlan'
+    cls = WLAN
+    queryset = WLAN.objects.select_related('site', 'group', 'tenant', 'role')
+    filter = filters.WLANFilter
+    table = tables.WLANTable
+    default_return_url = 'ipam:wlan_list'
 
 
 #

@@ -14,8 +14,8 @@ from utilities.forms import (
     add_blank_choice,
 )
 from virtualization.models import VirtualMachine
-from .constants import IPADDRESS_ROLE_CHOICES, IPADDRESS_STATUS_CHOICES, PREFIX_STATUS_CHOICES, VLAN_STATUS_CHOICES
-from .models import Aggregate, IPAddress, Prefix, RIR, Role, Service, VLAN, VLANGroup, VRF
+from .constants import IPADDRESS_ROLE_CHOICES, IPADDRESS_STATUS_CHOICES, PREFIX_STATUS_CHOICES, VLAN_STATUS_CHOICES, WLAN_STATUS_CHOICES
+from .models import Aggregate, IPAddress, Prefix, RIR, Role, Service, VLAN, VLANGroup, WLAN, WLANGroup, VRF
 
 IP_FAMILY_CHOICES = [
     ('', 'All'),
@@ -906,6 +906,191 @@ class VLANFilterForm(BootstrapMixin, CustomFieldFilterForm):
     status = forms.MultipleChoiceField(choices=vlan_status_choices, required=False)
     role = FilterChoiceField(
         queryset=Role.objects.annotate(filter_count=Count('vlans')),
+        to_field_name='slug',
+        null_label='-- None --'
+    )
+
+#
+# WLAN groups
+#
+
+class WLANGroupForm(BootstrapMixin, forms.ModelForm):
+    slug = SlugField()
+
+    class Meta:
+        model = WLANGroup
+        fields = ['site', 'name', 'slug']
+
+
+class WLANGroupCSVForm(forms.ModelForm):
+    site = forms.ModelChoiceField(
+        queryset=Site.objects.all(),
+        required=False,
+        to_field_name='name',
+        help_text='Name of parent site',
+        error_messages={
+            'invalid_choice': 'Site not found.',
+        }
+    )
+    slug = SlugField()
+
+    class Meta:
+        model = WLANGroup
+        fields = WLANGroup.csv_headers
+        help_texts = {
+            'name': 'Name of WLAN group',
+        }
+
+
+class WLANGroupFilterForm(BootstrapMixin, forms.Form):
+    site = FilterChoiceField(
+        queryset=Site.objects.annotate(filter_count=Count('wlan_groups')),
+        to_field_name='slug',
+        null_label='-- Global --'
+    )
+
+
+#
+# WLANs
+#
+
+class WLANForm(BootstrapMixin, TenancyForm, CustomFieldForm):
+    site = forms.ModelChoiceField(
+        queryset=Site.objects.all(),
+        required=False,
+        widget=forms.Select(
+            attrs={'filter-for': 'group', 'nullable': 'true'}
+        )
+    )
+    group = ChainedModelChoiceField(
+        queryset=WLANGroup.objects.all(),
+        chains=(
+            ('site', 'site'),
+        ),
+        required=False,
+        label='Group',
+        widget=APISelect(
+            api_url='/api/ipam/wlan-groups/?site_id={{site}}',
+        )
+    )
+
+    class Meta:
+        model = WLAN
+        fields = ['site', 'group', 'ssid', 'name', 'status', 'role', 'description', 'tenant_group', 'tenant']
+        help_texts = {
+            'site': "Leave blank if this WLAN spans multiple sites",
+            'group': "WLAN group (optional)",
+            'ssid': "Configured WLAN SSID",
+            'name': "Configured WLAN name",
+            'status': "Operational status of this WLAN",
+            'role': "The primary function of this WLAN",
+        }
+
+
+class WLANCSVForm(forms.ModelForm):
+    site = forms.ModelChoiceField(
+        queryset=Site.objects.all(),
+        required=False,
+        to_field_name='name',
+        help_text='Name of parent site',
+        error_messages={
+            'invalid_choice': 'Site not found.',
+        }
+    )
+    group_name = forms.CharField(
+        help_text='Name of WLAN group',
+        required=False
+    )
+    tenant = forms.ModelChoiceField(
+        queryset=Tenant.objects.all(),
+        to_field_name='name',
+        required=False,
+        help_text='Name of assigned tenant',
+        error_messages={
+            'invalid_choice': 'Tenant not found.',
+        }
+    )
+    status = CSVChoiceField(
+        choices=VLAN_STATUS_CHOICES,
+        help_text='Operational status'
+    )
+    role = forms.ModelChoiceField(
+        queryset=Role.objects.all(),
+        required=False,
+        to_field_name='name',
+        help_text='Functional role',
+        error_messages={
+            'invalid_choice': 'Invalid role.',
+        }
+    )
+
+    class Meta:
+        model = WLAN
+        fields = WLAN.csv_headers
+        help_texts = {
+            'ssid': 'WLAN SSID',
+            'name': 'WLAN name',
+        }
+
+    def clean(self):
+
+        super(WLANCSVForm, self).clean()
+
+        site = self.cleaned_data.get('site')
+        group_name = self.cleaned_data.get('group_name')
+
+        # Validate WLAN group
+        if group_name:
+            try:
+                self.instance.group = WLANGroup.objects.get(site=site, name=group_name)
+            except WLANGroup.DoesNotExist:
+                if site:
+                    raise forms.ValidationError("WLAN group {} not found for site {}".format(group_name, site))
+                else:
+                    raise forms.ValidationError("Global WLAN group {} not found".format(group_name))
+
+
+class WLANBulkEditForm(BootstrapMixin, CustomFieldBulkEditForm):
+    pk = forms.ModelMultipleChoiceField(queryset=WLAN.objects.all(), widget=forms.MultipleHiddenInput)
+    site = forms.ModelChoiceField(queryset=Site.objects.all(), required=False)
+    group = forms.ModelChoiceField(queryset=WLANGroup.objects.all(), required=False)
+    tenant = forms.ModelChoiceField(queryset=Tenant.objects.all(), required=False)
+    status = forms.ChoiceField(choices=add_blank_choice(VLAN_STATUS_CHOICES), required=False)
+    role = forms.ModelChoiceField(queryset=Role.objects.all(), required=False)
+    description = forms.CharField(max_length=100, required=False)
+
+    class Meta:
+        nullable_fields = ['site', 'group', 'tenant', 'role', 'description']
+
+
+def wlan_status_choices():
+    status_counts = {}
+    for status in WLAN.objects.values('status').annotate(count=Count('status')).order_by('status'):
+        status_counts[status['status']] = status['count']
+    return [(s[0], '{} ({})'.format(s[1], status_counts.get(s[0], 0))) for s in WLAN_STATUS_CHOICES]
+
+
+class WLANFilterForm(BootstrapMixin, CustomFieldFilterForm):
+    model = WLAN
+    q = forms.CharField(required=False, label='Search')
+    site = FilterChoiceField(
+        queryset=Site.objects.annotate(filter_count=Count('wlans')),
+        to_field_name='slug',
+        null_label='-- Global --'
+    )
+    group_id = FilterChoiceField(
+        queryset=WLANGroup.objects.annotate(filter_count=Count('wlans')),
+        label='WLAN group',
+        null_label='-- None --'
+    )
+    tenant = FilterChoiceField(
+        queryset=Tenant.objects.annotate(filter_count=Count('wlans')),
+        to_field_name='slug',
+        null_label='-- None --'
+    )
+    status = forms.MultipleChoiceField(choices=wlan_status_choices, required=False)
+    role = FilterChoiceField(
+        queryset=Role.objects.annotate(filter_count=Count('wlans')),
         to_field_name='slug',
         null_label='-- None --'
     )

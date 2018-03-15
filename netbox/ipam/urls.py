@@ -83,6 +83,23 @@ urlpatterns = [
     url(r'^vlans/(?P<pk>\d+)/edit/$', views.VLANEditView.as_view(), name='vlan_edit'),
     url(r'^vlans/(?P<pk>\d+)/delete/$', views.VLANDeleteView.as_view(), name='vlan_delete'),
 
+    # WLAN groups
+    url(r'^wlan-groups/$', views.WLANGroupListView.as_view(), name='wlangroup_list'),
+    url(r'^wlan-groups/add/$', views.WLANGroupCreateView.as_view(), name='wlangroup_add'),
+    url(r'^wlan-groups/import/$', views.WLANGroupBulkImportView.as_view(), name='wlangroup_import'),
+    url(r'^wlan-groups/delete/$', views.WLANGroupBulkDeleteView.as_view(), name='wlangroup_bulk_delete'),
+    url(r'^wlan-groups/(?P<pk>\d+)/edit/$', views.WLANGroupEditView.as_view(), name='wlangroup_edit'),
+
+    # WLANs
+    url(r'^wlans/$', views.WLANListView.as_view(), name='wlan_list'),
+    url(r'^wlans/add/$', views.WLANCreateView.as_view(), name='wlan_add'),
+    url(r'^wlans/import/$', views.WLANBulkImportView.as_view(), name='wlan_import'),
+    url(r'^wlans/edit/$', views.WLANBulkEditView.as_view(), name='wlan_bulk_edit'),
+    url(r'^wlans/delete/$', views.WLANBulkDeleteView.as_view(), name='wlan_bulk_delete'),
+    url(r'^wlans/(?P<pk>\d+)/$', views.WLANView.as_view(), name='wlan'),
+    url(r'^wlans/(?P<pk>\d+)/edit/$', views.WLANEditView.as_view(), name='wlan_edit'),
+    url(r'^wlans/(?P<pk>\d+)/delete/$', views.WLANDeleteView.as_view(), name='wlan_delete'),
+
     # Services
     url(r'^services/(?P<pk>\d+)/edit/$', views.ServiceEditView.as_view(), name='service_edit'),
     url(r'^services/(?P<pk>\d+)/delete/$', views.ServiceDeleteView.as_view(), name='service_delete'),

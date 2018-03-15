@@ -9,7 +9,7 @@ from rest_framework.response import Response
 
 from extras.api.views import CustomFieldModelViewSet
 from ipam import filters
-from ipam.models import Aggregate, IPAddress, Prefix, RIR, Role, Service, VLAN, VLANGroup, VRF
+from ipam.models import Aggregate, IPAddress, Prefix, RIR, Role, Service, VLAN, VLANGroup, WLAN, WLANGroup, VRF
 from utilities.api import FieldChoicesViewSet, ModelViewSet
 from . import serializers
 
@@ -247,6 +247,28 @@ class VLANViewSet(CustomFieldModelViewSet):
     serializer_class = serializers.VLANSerializer
     write_serializer_class = serializers.WritableVLANSerializer
     filter_class = filters.VLANFilter
+
+
+#
+# WLAN groups
+#
+
+class WLANGroupViewSet(ModelViewSet):
+    queryset = WLANGroup.objects.select_related('site')
+    serializer_class = serializers.WLANGroupSerializer
+    write_serializer_class = serializers.WritableWLANGroupSerializer
+    filter_class = filters.WLANGroupFilter
+
+
+#
+# WLANs
+#
+
+class WLANViewSet(CustomFieldModelViewSet):
+    queryset = WLAN.objects.select_related('site', 'group', 'tenant', 'role')
+    serializer_class = serializers.WLANSerializer
+    write_serializer_class = serializers.WritableWLANSerializer
+    filter_class = filters.WLANFilter
 
 
 #

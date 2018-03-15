@@ -10,9 +10,9 @@ from dcim.api.serializers import NestedDeviceSerializer, InterfaceSerializer, Ne
 from dcim.models import Interface
 from extras.api.customfields import CustomFieldModelSerializer
 from ipam.constants import (
-    IPADDRESS_ROLE_CHOICES, IPADDRESS_STATUS_CHOICES, IP_PROTOCOL_CHOICES, PREFIX_STATUS_CHOICES, VLAN_STATUS_CHOICES,
+    IPADDRESS_ROLE_CHOICES, IPADDRESS_STATUS_CHOICES, IP_PROTOCOL_CHOICES, PREFIX_STATUS_CHOICES, VLAN_STATUS_CHOICES, WLAN_STATUS_CHOICES,
 )
-from ipam.models import Aggregate, IPAddress, Prefix, RIR, Role, Service, VLAN, VLANGroup, VRF
+from ipam.models import Aggregate, IPAddress, Prefix, RIR, Role, Service, VLAN, VLANGroup, WLAN, WLANGroup, VRF
 from tenancy.api.serializers import NestedTenantSerializer
 from utilities.api import ChoiceFieldSerializer, ValidatedModelSerializer
 from virtualization.api.serializers import NestedVirtualMachineSerializer
@@ -209,6 +209,100 @@ class WritableVLANSerializer(CustomFieldModelSerializer):
         super(WritableVLANSerializer, self).validate(data)
 
         return data
+
+#
+# WLAN groups
+#
+
+class WLANGroupSerializer(serializers.ModelSerializer):
+    site = NestedSiteSerializer()
+
+    class Meta:
+        model = WLANGroup
+        fields = ['id', 'name', 'slug', 'site']
+
+
+class NestedWLANGroupSerializer(serializers.ModelSerializer):
+    url = serializers.HyperlinkedIdentityField(view_name='ipam-api:wlangroup-detail')
+
+    class Meta:
+        model = WLANGroup
+        fields = ['id', 'url', 'name', 'slug']
+
+
+class WritableWLANGroupSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = WLANGroup
+        fields = ['id', 'name', 'slug', 'site']
+        validators = []
+
+    def validate(self, data):
+
+        # Validate uniqueness of name and slug if a site has been assigned.
+        if data.get('site', None):
+            for field in ['name', 'slug']:
+                validator = UniqueTogetherValidator(queryset=WLANGroup.objects.all(), fields=('site', field))
+                validator.set_context(self)
+                validator(data)
+
+        # Enforce model validation
+        super(WritableWLANGroupSerializer, self).validate(data)
+
+        return data
+
+
+#
+# WLANs
+#
+
+class WLANSerializer(CustomFieldModelSerializer):
+    site = NestedSiteSerializer()
+    group = NestedWLANGroupSerializer()
+    tenant = NestedTenantSerializer()
+    status = ChoiceFieldSerializer(choices=WLAN_STATUS_CHOICES)
+    role = NestedRoleSerializer()
+
+    class Meta:
+        model = WLAN
+        fields = [
+            'id', 'site', 'group', 'ssid', 'name', 'tenant', 'status', 'role', 'description', 'display_name',
+            'custom_fields', 'created', 'last_updated',
+        ]
+
+
+class NestedWLANSerializer(serializers.ModelSerializer):
+    url = serializers.HyperlinkedIdentityField(view_name='ipam-api:wlan-detail')
+
+    class Meta:
+        model = WLAN
+        fields = ['id', 'url', 'ssid', 'name', 'display_name']
+
+
+class WritableWLANSerializer(CustomFieldModelSerializer):
+
+    class Meta:
+        model = WLAN
+        fields = [
+            'id', 'site', 'group', 'ssid', 'name', 'tenant', 'status', 'role', 'description', 'custom_fields', 'created',
+            'last_updated',
+        ]
+        validators = []
+
+    def validate(self, data):
+
+        # Validate uniqueness of vid and name if a group has been assigned.
+        if data.get('group', None):
+            for field in ['ssid', 'name']:
+                validator = UniqueTogetherValidator(queryset=WLAN.objects.all(), fields=('group', field))
+                validator.set_context(self)
+                validator(data)
+
+        # Enforce model validation
+        super(WritableWLANSerializer, self).validate(data)
+
+        return data
+
 
 
 #

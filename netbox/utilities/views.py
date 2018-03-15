@@ -577,6 +577,7 @@ class BulkEditView(View):
         return render(request, self.template_name, {
             'form': form,
             'table': table,
+            'obj_type': self.cls._meta.verbose_name,
             'obj_type_plural': self.cls._meta.verbose_name_plural,
             'return_url': return_url,
         })
@@ -663,6 +664,7 @@ class BulkDeleteView(View):
         return render(request, self.template_name, {
             'form': form,
             'parent_obj': parent_obj,
+            'obj_type': self.cls._meta.verbose_name,
             'obj_type_plural': self.cls._meta.verbose_name_plural,
             'table': table,
             'return_url': return_url,

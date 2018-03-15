@@ -546,6 +546,7 @@ class VLANGroup(models.Model):
         return None
 
 
+
 @python_2_unicode_compatible
 class VLAN(CreatedUpdatedModel, CustomFieldModel):
     """
@@ -610,6 +611,106 @@ class VLAN(CreatedUpdatedModel, CustomFieldModel):
     def display_name(self):
         if self.vid and self.name:
             return "{} ({})".format(self.vid, self.name)
+        return None
+
+    def get_status_class(self):
+        return STATUS_CHOICE_CLASSES[self.status]
+
+
+@python_2_unicode_compatible
+class WLANGroup(models.Model):
+    """
+    A WLAN group is an arbitrary collection of WLANs within which WLAN SSIDs and names must be unique.
+    """
+    name = models.CharField(max_length=50)
+    slug = models.SlugField()
+    site = models.ForeignKey('dcim.Site', related_name='wlan_groups', on_delete=models.PROTECT, blank=True, null=True)
+
+    csv_headers = ['name', 'slug', 'site']
+
+    class Meta:
+        ordering = ['site', 'name']
+        unique_together = [
+            ['site', 'name'],
+            ['site', 'slug'],
+        ]
+        verbose_name = 'WLAN group'
+        verbose_name_plural = 'WLAN groups'
+
+    def __str__(self):
+        return self.name
+
+    def get_absolute_url(self):
+        return "{}?group_id={}".format(reverse('ipam:wlan_list'), self.pk)
+
+    def to_csv(self):
+        return (
+            self.name,
+            self.slug,
+            self.site.name if self.site else None,
+        )
+
+@python_2_unicode_compatible
+class WLAN(CreatedUpdatedModel, CustomFieldModel):
+    """
+    A WLAN is a SSID broadcasted over the Accesspoints. Each WLAN must be assigned
+    to a Site. A WLAN may optionally be assigned to a WLANGroup,
+    within which all WLAN SSIDs and names but be unique.
+
+    Like Prefixes, each WLAN is assigned an operational status and optionally a user-defined Role.
+    A WLAN can have zero or more Prefixes assigned to it.
+    """
+    site = models.ForeignKey('dcim.Site', related_name='wlans', on_delete=models.PROTECT, blank=True, null=True)
+    group = models.ForeignKey('WLANGroup', related_name='wlans', blank=True, null=True, on_delete=models.PROTECT)
+    ssid = models.CharField(max_length=64,verbose_name='SSID')
+    name = models.CharField(max_length=64)
+    tenant = models.ForeignKey(Tenant, related_name='wlans', blank=True, null=True, on_delete=models.PROTECT)
+    status = models.PositiveSmallIntegerField('Status', choices=WLAN_STATUS_CHOICES, default=1)
+    role = models.ForeignKey('Role', related_name='wlans', on_delete=models.SET_NULL, blank=True, null=True)
+    description = models.CharField(max_length=100, blank=True)
+    custom_field_values = GenericRelation(CustomFieldValue, content_type_field='obj_type', object_id_field='obj_id')
+
+    csv_headers = ['site', 'group_name', 'ssid', 'name', 'tenant', 'status', 'role', 'description']
+
+    class Meta:
+        ordering = ['site', 'group', 'ssid']
+        unique_together = [
+            ['group', 'ssid'],
+            ['group', 'name'],
+        ]
+        verbose_name = 'WLAN'
+        verbose_name_plural = 'WLANs'
+
+    def __str__(self):
+        return self.display_name or super(WLAN, self).__str__()
+
+    def get_absolute_url(self):
+        return reverse('ipam:wlan', args=[self.pk])
+
+    def clean(self):
+
+        # Validate WLAN group
+        if self.group and self.group.site != self.site:
+            raise ValidationError({
+                'group': "WLAN group must belong to the assigned site ({}).".format(self.site)
+            })
+
+    def to_csv(self):
+        return (
+            self.site.name if self.site else None,
+            self.group.name if self.group else None,
+            self.ssid,
+            self.name,
+            self.tenant.name if self.tenant else None,
+            self.get_status_display(),
+            self.role.name if self.role else None,
+            self.description,
+        )
+
+    @property
+    def display_name(self):
+        if self.ssid and self.name:
+            return "{} ({})".format(self.ssid, self.name)
         return None
 
     def get_status_class(self):

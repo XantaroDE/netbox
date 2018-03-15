@@ -5,7 +5,7 @@ from django_tables2.utils import Accessor
 
 from tenancy.tables import COL_TENANT
 from utilities.tables import BaseTable, ToggleColumn
-from .models import Aggregate, IPAddress, Prefix, RIR, Role, VLAN, VLANGroup, VRF
+from .models import Aggregate, IPAddress, Prefix, RIR, Role, VLAN, VLANGroup, WLAN, WLANGroup, VRF
 
 RIR_UTILIZATION = """
 <div class="progress">
@@ -135,6 +135,25 @@ VLANGROUP_ACTIONS = """
 {% endwith %}
 {% if perms.ipam.change_vlangroup %}
     <a href="{% url 'ipam:vlangroup_edit' pk=record.pk %}" class="btn btn-xs btn-warning"><i class="glyphicon glyphicon-pencil" aria-hidden="true"></i></a>
+{% endif %}
+"""
+
+WLAN_ROLE_LINK = """
+{% if record.role %}
+    <a href="{% url 'ipam:wlan_list' %}?role={{ record.role.slug }}">{{ record.role }}</a>
+{% else %}
+    &mdash;
+{% endif %}
+"""
+
+WLANGROUP_ACTIONS = """
+    {% if perms.ipam.add_wlan %}
+        <a href="{% url 'ipam:wlan_add' %}?site={{ record.site_id }}&group={{ record.pk }}" title="Add WLAN" class="btn btn-xs btn-success">
+            <i class="glyphicon glyphicon-plus" aria-hidden="true"></i>
+        </a>
+    {% endif %}
+{% if perms.ipam.change_wlangroup %}
+    <a href="{% url 'ipam:wlangroup_edit' pk=record.pk %}" class="btn btn-xs btn-warning"><i class="glyphicon glyphicon-pencil" aria-hidden="true"></i></a>
 {% endif %}
 """
 
@@ -361,3 +380,39 @@ class VLANDetailTable(VLANTable):
 
     class Meta(VLANTable.Meta):
         fields = ('pk', 'vid', 'site', 'group', 'name', 'prefixes', 'tenant', 'status', 'role', 'description')
+
+
+#
+# WLAN groups
+#
+
+class WLANGroupTable(BaseTable):
+    pk = ToggleColumn()
+    name = tables.LinkColumn(verbose_name='Name')
+    site = tables.LinkColumn('dcim:site', args=[Accessor('site.slug')], verbose_name='Site')
+    wlan_count = tables.Column(verbose_name='WLANs')
+    slug = tables.Column(verbose_name='Slug')
+    actions = tables.TemplateColumn(template_code=WLANGROUP_ACTIONS, attrs={'td': {'class': 'text-right'}},
+                                    verbose_name='')
+
+    class Meta(BaseTable.Meta):
+        model = WLANGroup
+        fields = ('pk', 'name', 'site', 'wlan_count', 'slug', 'actions')
+
+
+#
+# WLANs
+#
+
+class WLANTable(BaseTable):
+    pk = ToggleColumn()
+    ssid = tables.LinkColumn('ipam:wlan', args=[Accessor('pk')], verbose_name='SSID')
+    site = tables.LinkColumn('dcim:site', args=[Accessor('site.slug')])
+    group = tables.Column(accessor=Accessor('group.name'), verbose_name='Group')
+    tenant = tables.TemplateColumn(template_code=COL_TENANT)
+    status = tables.TemplateColumn(STATUS_LABEL)
+    role = tables.TemplateColumn(WLAN_ROLE_LINK)
+
+    class Meta(BaseTable.Meta):
+        model = WLAN
+        fields = ('pk', 'ssid', 'site', 'group', 'name', 'tenant', 'status', 'role', 'description')

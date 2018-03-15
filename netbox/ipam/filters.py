@@ -10,8 +10,8 @@ from extras.filters import CustomFieldFilterSet
 from tenancy.models import Tenant
 from utilities.filters import NumericInFilter
 from virtualization.models import VirtualMachine
-from .constants import IPADDRESS_ROLE_CHOICES, IPADDRESS_STATUS_CHOICES, PREFIX_STATUS_CHOICES, VLAN_STATUS_CHOICES
-from .models import Aggregate, IPAddress, Prefix, RIR, Role, Service, VLAN, VLANGroup, VRF
+from .constants import IPADDRESS_ROLE_CHOICES, IPADDRESS_STATUS_CHOICES, PREFIX_STATUS_CHOICES, VLAN_STATUS_CHOICES, WLAN_STATUS_CHOICES
+from .models import Aggregate, IPAddress, Prefix, RIR, Role, Service, VLAN, VLANGroup, WLAN, WLANGroup, VRF
 
 
 class VRFFilter(CustomFieldFilterSet, django_filters.FilterSet):
@@ -405,6 +405,88 @@ class VLANFilter(CustomFieldFilterSet, django_filters.FilterSet):
         qs_filter = Q(name__icontains=value) | Q(description__icontains=value)
         try:
             qs_filter |= Q(vid=int(value.strip()))
+        except ValueError:
+            pass
+        return queryset.filter(qs_filter)
+
+class WLANGroupFilter(django_filters.FilterSet):
+    site_id = django_filters.ModelMultipleChoiceFilter(
+        queryset=Site.objects.all(),
+        label='Site (ID)',
+    )
+    site = django_filters.ModelMultipleChoiceFilter(
+        name='site__slug',
+        queryset=Site.objects.all(),
+        to_field_name='slug',
+        label='Site (slug)',
+    )
+
+    class Meta:
+        model = WLANGroup
+        fields = ['name', 'slug']
+
+
+class WLANFilter(CustomFieldFilterSet, django_filters.FilterSet):
+    id__in = NumericInFilter(name='id', lookup_expr='in')
+    q = django_filters.CharFilter(
+        method='search',
+        label='Search',
+    )
+    site_id = django_filters.ModelMultipleChoiceFilter(
+        queryset=Site.objects.all(),
+        label='Site (ID)',
+    )
+    site = django_filters.ModelMultipleChoiceFilter(
+        name='site__slug',
+        queryset=Site.objects.all(),
+        to_field_name='slug',
+        label='Site (slug)',
+    )
+    group_id = django_filters.ModelMultipleChoiceFilter(
+        queryset=WLANGroup.objects.all(),
+        label='Group (ID)',
+    )
+    group = django_filters.ModelMultipleChoiceFilter(
+        name='group__slug',
+        queryset=WLANGroup.objects.all(),
+        to_field_name='slug',
+        label='Group',
+    )
+    tenant_id = django_filters.ModelMultipleChoiceFilter(
+        queryset=Tenant.objects.all(),
+        label='Tenant (ID)',
+    )
+    tenant = django_filters.ModelMultipleChoiceFilter(
+        name='tenant__slug',
+        queryset=Tenant.objects.all(),
+        to_field_name='slug',
+        label='Tenant (slug)',
+    )
+    role_id = django_filters.ModelMultipleChoiceFilter(
+        queryset=Role.objects.all(),
+        label='Role (ID)',
+    )
+    role = django_filters.ModelMultipleChoiceFilter(
+        name='role__slug',
+        queryset=Role.objects.all(),
+        to_field_name='slug',
+        label='Role (slug)',
+    )
+    status = django_filters.MultipleChoiceFilter(
+        choices=WLAN_STATUS_CHOICES,
+        null_value=None
+    )
+
+    class Meta:
+        model = WLAN
+        fields = ['ssid', 'name']
+
+    def search(self, queryset, name, value):
+        if not value.strip():
+            return queryset
+        qs_filter = Q(name__icontains=value) | Q(description__icontains=value)
+        try:
+            qs_filter |= Q(ssid=int(value.strip()))
         except ValueError:
             pass
         return queryset.filter(qs_filter)

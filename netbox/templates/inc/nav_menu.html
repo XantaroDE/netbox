@@ -280,6 +280,38 @@
                             {% endif %}
                             <a href="{% url 'ipam:vlangroup_list' %}">VLAN Groups</a>
                         </li>
+                        <li class="divider"></li>
+                        <li class="dropdown-header">WLANs</li>
+                        <li>
+                            {% if perms.ipam.add_wlan %}
+                                <div class="buttons pull-right">
+                                    <a href="{% url 'ipam:wlan_add' %}" class="btn btn-xs btn-success" title="Add"><i class="fa fa-plus"></i></a>
+                                    <a href="{% url 'ipam:wlan_import' %}" class="btn btn-xs btn-info" title="Import"><i class="fa fa-download"></i></a>
+                                </div>
+                            {% endif %}
+                            <a href="{% url 'ipam:wlan_list' %}">WLANs</a>
+                        </li>
+                        <li>
+                            {% if perms.ipam.add_wlangroup %}
+                                <div class="buttons pull-right">
+                                    <a href="{% url 'ipam:wlangroup_add' %}" class="btn btn-xs btn-success" title="Add"><i class="fa fa-plus"></i></a>
+                                    <a href="{% url 'ipam:wlangroup_import' %}" class="btn btn-xs btn-info" title="Import"><i class="fa fa-download"></i></a>
+                                </div>
+                            {% endif %}
+                            <a href="{% url 'ipam:wlangroup_list' %}">WLAN Groups</a>
+                        </li>
+                        <li class="divider"></li>
+                        <li class="dropdown-header">VRFs</li>
+                        <li>
+                            {% if perms.ipam.add_vrf %}
+                                <div class="buttons pull-right">
+                                    <a href="{% url 'ipam:vrf_add' %}" class="btn btn-xs btn-success" title="Add"><i class="fa fa-plus"></i></a>
+                                    <a href="{% url 'ipam:vrf_import' %}" class="btn btn-xs btn-info" title="Import"><i class="fa fa-download"></i></a>
+                                </div>
+                            {% endif %}
+                            <a href="{% url 'ipam:vrf_list' %}">VRFs</a>
+                        </li>
+
                     </ul>
                 </li>
                 <li class="dropdown{% if request.path|contains:'/virtualization/' %} active{% endif %}">
