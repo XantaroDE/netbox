@@ -22,6 +22,7 @@ OBJ_TYPE_CHOICES = (
         ('prefix', 'Prefixes'),
         ('ipaddress', 'IP addresses'),
         ('vlan', 'VLANs'),
+        ('wlan', 'WLANs'),
     )),
     ('Secrets', (
         ('secret', 'Secrets'),

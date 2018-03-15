@@ -96,6 +96,11 @@
                     <h4 class="list-group-item-heading"><a href="{% url 'ipam:vlan_list' %}">VLANs</a></h4>
                     <p class="list-group-item-text text-muted">Layer two domains, identified by VLAN ID</p>
                 </div>
+                <div class="list-group-item">
+                    <span class="badge pull-right">{{ stats.wlan_count }}</span>
+                    <h4 class="list-group-item-heading"><a href="{% url 'ipam:wlan_list' %}">WLANs</a></h4>
+                    <p class="list-group-item-text text-muted">Wireless Networks, identified by SSID</p>
+                </div>
             </div>
         </div>
         <div class="panel panel-default">

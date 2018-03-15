@@ -16,9 +16,9 @@ from dcim.filters import DeviceFilter, DeviceTypeFilter, RackFilter, SiteFilter
 from dcim.models import ConsolePort, Device, DeviceType, InterfaceConnection, PowerPort, Rack, Site
 from dcim.tables import DeviceDetailTable, DeviceTypeTable, RackTable, SiteTable
 from extras.models import ReportResult, TopologyMap, UserAction
-from ipam.filters import AggregateFilter, IPAddressFilter, PrefixFilter, VLANFilter, VRFFilter
-from ipam.models import Aggregate, IPAddress, Prefix, VLAN, VRF
-from ipam.tables import AggregateTable, IPAddressTable, PrefixTable, VLANTable, VRFTable
+from ipam.filters import AggregateFilter, IPAddressFilter, PrefixFilter, VLANFilter, WLANFilter, VRFFilter
+from ipam.models import Aggregate, IPAddress, Prefix, VLAN, WLAN, VRF
+from ipam.tables import AggregateTable, IPAddressTable, PrefixTable, VLANTable, WLANTable, VRFTable
 from secrets.filters import SecretFilter
 from secrets.models import Secret
 from secrets.tables import SecretTable
@@ -103,6 +103,12 @@ SEARCH_TYPES = OrderedDict((
         'table': VLANTable,
         'url': 'ipam:vlan_list',
     }),
+    ('wlan', {
+        'queryset': WLAN.objects.select_related('site', 'group', 'tenant', 'role'),
+        'filter': WLANFilter,
+        'table': WLANTable,
+        'url': 'ipam:wlan_list',
+    }),
     # Secrets
     ('secret', {
         'queryset': Secret.objects.select_related('role', 'device'),
@@ -159,6 +165,7 @@ class HomeView(View):
             'prefix_count': Prefix.objects.count(),
             'ipaddress_count': IPAddress.objects.count(),
             'vlan_count': VLAN.objects.count(),
+            'wlan_count': WLAN.objects.count(),
 
             # Circuits
             'provider_count': Provider.objects.count(),
